@@ -1,0 +1,21 @@
+#!name=中国移动组件服务(通知开关版)
+#!desc= 查询套餐内通话、套餐使用情况（基于 ByteValley 原版改造）。新增「静默组件刷新」：桌面小组件/组件每次查询成功后不再弹"数据刷新成功"通知；保留「静默捕获」控制打开App捕获通知。
+#!category=组件服务
+#!author= ByteValley(改造:通知开关)
+#!arguments= CRONEXP:0 9 * * *,TIMEOUT:60,禁用获参重写:'',禁用通知查询:'',手机号码:'',BarkKey:'',禁用PANEL:'',调试模式:0,静默模式:0,Scriptable服务模式:0,静默捕获:0,静默组件刷新:0
+#!arguments-desc=[参数设置]\n\n⓵ CRONEXP: 每天自动查询的时刻(cron表达式),默认每天9点。参考 https://tool.lu/crontab/\n\n⓶ TIMEOUT: 单次脚本最长运行秒数,超时强制中断,默认60。\n\n⓷ 禁用获参重写：填 # = 关闭「打开App自动捕获」这条;留空=开启(要重新抓参数时必须放空)。\n\n⓸ 禁用通知查询：填 # = 关闭每天定时推送这条。\n\n⓹ 手机号码：定时查询/面板查询用的手机号。桌面小组件那条不读它(小组件用①抓到的会话)。\n\n⓺ BarkKey：Bark推送key。填了则定时/面板通知改走Bark;留空用Surge自带横幅。\n\n⓻ 禁用PANEL：填 # = 关闭下拉面板;留空=开启。\n\n⓼ 调试模式：1/true/是 = 开详细日志,排查用;0=关。\n\n⓽ 静默模式：1/true/是 = 定时查询+面板查询成功不再弹通知(不作用于桌面组件)。\n\n⓾ Scriptable服务模式：旧Scriptable小组件服务用;Scripting组件保持0。\n\n⓫ 静默捕获：1/true/是 = 每次打开App自动捕获参数成功时不再弹"✅数据捕获成功"通知,捕获照常;0=弹。\n\n⓬ 静默组件刷新：1/true/是 = 桌面小组件每次刷新查询成功时不再弹"数据刷新成功"通知(解决连弹提示);0=弹。\n
+
+[Script]
+{{{禁用获参重写}}}移动参数获取 = type = http-request, pattern=^https?:\/\/client\.app\.coc\.10086\.cn\/biz-orange\/[LD]N\/(uam(onekey|randcode)login|realPersonAuthentication)\/autoLogin,requires-body=1,max-size=0,script-path=https://raw.githubusercontent.com/vaeann/ChinaMobile-Silent/main/10086-notify.js,argument=capture_silent={{{静默捕获}}}
+
+{{{禁用通知查询}}}移动余量查询·通知 = type = cron, cronexp={{{CRONEXP}}}, wake-system=1, script-path=https://github.com/ChinaTelecomOperators/ChinaMobile/releases/download/Prerelease-Alpha/10086.js,timeout={{{TIMEOUT}}}, argument=phonenumber={{{手机号码}}}&bark_key={{{BarkKey}}}&debug={{{调试模式}}}&silent={{{静默模式}}}&service={{{Scriptable服务模式}}}
+
+{{{禁用PANEL}}}移动余量查询·面板 = type = generic, timeout=60, script-path=https://github.com/ChinaTelecomOperators/ChinaMobile/releases/download/Prerelease-Alpha/10086.js,argument=icon=arrow.up.arrow.down.circle&icon-color=#5d84f8&phonenumber={{{手机号码}}}&bark_key={{{BarkKey}}}&debug={{{调试模式}}}&silent={{{静默模式}}}&service={{{Scriptable服务模式}}}
+
+移动余量查询·组件 = type = http-request, pattern=^https?:\/\/api\.example\.com\/10086\/query, script-path=https://raw.githubusercontent.com/vaeann/ChinaMobile-Silent/main/10086-notify.js, requires-body=true, max-size=-1, timeout=60, argument=widget_silent={{{静默组件刷新}}}
+
+[Panel]
+{{{禁用PANEL}}}移动余量查询 = script-name=移动余量查询·面板, update-interval=21600
+
+[MITM]
+hostname = %APPEND% api.example.com, client.app.coc.10086.cn
